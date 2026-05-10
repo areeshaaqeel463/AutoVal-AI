@@ -178,6 +178,12 @@ condition            →  Condition
 city / location      →  City
 price / Price_PKR    →  Price_PKR
 
+##  Project Management
+- **Jira Board:** https://bic-team-t6b2f6in.atlassian.net/jira/software/projects/AVA
+- **Total Tasks:** 54 tasks completed
+- **Sprints:** 8 sprints
+- **Story Points:** 173 pts delivered
+
 ## ── Team Notes (for JIRA / Report) ────────────────────
 
 Hasan Ali Khan (ML Engineer):
@@ -202,6 +208,9 @@ Areesha Aqeel (Project Lead):
   - Coordinate dataset download and verify it works
   - Update all JIRA tickets with progress
   - Write the integration section of Assignment 2
+  - team report
+  - github
+  - cordinate with all members
 
 ---
 AutoVal AI | University of Essex | BSc Artificial Intelligence | Year 1
