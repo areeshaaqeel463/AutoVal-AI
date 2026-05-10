@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoVal AI — Car Price Prediction System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111318;
+    --surface2: #1a1d26;
+    --border: #252833;
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --accent3: #ff6b35;
+    --text: #f0f2ff;
+    --muted: #6b7280;
+    --success: #4ade80;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 0;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.25rem 3rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,11,15,0.85);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.4rem;
+    letter-spacing: -0.02em;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .logo-badge {
+    background: var(--accent); color: #0a0b0f;
+    font-size: 0.6rem; font-weight: 700;
+    padding: 0.2rem 0.5rem; border-radius: 4px;
+    letter-spacing: 0.08em;
+  }
+
+  /* API STATUS INDICATOR */
+  .api-status {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.05em;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .status-dot.online  { background: var(--success); animation: pulse 2s infinite; }
+  .status-dot.offline { background: var(--accent3); }
+  .status-dot.checking { background: var(--accent); animation: pulse 0.8s infinite; }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  nav { display: flex; gap: 2rem; align-items: center; }
+  nav a {
+    color: var(--muted); text-decoration: none;
+    font-size: 0.875rem; font-weight: 500;
+    transition: color 0.2s; cursor: pointer;
+  }
+  nav a:hover { color: var(--text); }
+  .nav-cta {
+    background: var(--accent); color: #0a0b0f !important;
+    padding: 0.5rem 1.25rem; border-radius: 6px;
+    font-weight: 600 !important;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 1;
+    padding: 6rem 3rem 4rem;
+    max-width: 1200px; margin: 0 auto;
+  }
+
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: rgba(232,255,71,0.08);
+    border: 1px solid rgba(232,255,71,0.2);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace; font-size: 0.75rem;
+    padding: 0.4rem 1rem; border-radius: 100px;
+    margin-bottom: 2rem; letter-spacing: 0.05em;
+  }
+  .hero-tag::before {
+    content: ''; width: 6px; height: 6px;
+    background: var(--accent); border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 800; line-height: 1.0;
+    letter-spacing: -0.03em; margin-bottom: 1.5rem;
+  }
+  h1 .highlight { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 1.1rem; color: var(--muted);
+    max-width: 560px; line-height: 1.7; margin-bottom: 3rem;
+  }
+
+  .hero-stats { display: flex; gap: 3rem; margin-bottom: 3rem; }
+  .stat { border-left: 2px solid var(--accent); padding-left: 1rem; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+
+  /* MAIN SECTION */
+  .main-section {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 3rem 6rem;
+  }
+
+  .predictor-grid {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 2rem; align-items: start;
+  }
+
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 2.5rem;
+    position: relative;
+  }
+
+  .form-card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem;
+  }
+  .form-card-sub { font-size: 0.875rem; color: var(--muted); margin-bottom: 2rem; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase;
+  }
+
+  input, select {
+    background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif; font-size: 0.95rem;
+    padding: 0.75rem 1rem; outline: none; width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,255,71,0.1);
+  }
+  select option { background: var(--surface2); }
+
+  .range-wrap {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.75rem 1rem;
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .range-wrap input[type=range] {
+    background: transparent; border: none; padding: 0;
+    flex: 1; accent-color: var(--accent); cursor: pointer;
+  }
+  .range-val {
+    font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    color: var(--accent); white-space: nowrap; min-width: 90px; text-align: right;
+  }
+
+  .predict-btn {
+    width: 100%; background: var(--accent); color: #0a0b0f;
+    border: none; border-radius: 10px;
+    font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+    padding: 1rem; cursor: pointer; margin-top: 1.75rem;
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.02em; position: relative; overflow: hidden;
+  }
+  .predict-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(232,255,71,0.3); }
+  .predict-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .predict-btn .shimmer {
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);
+    transform: translateX(-100%); transition: transform 0.4s;
+  }
+  .predict-btn:hover .shimmer { transform: translateX(100%); }
+
+  /* LOADING OVERLAY */
+  .loading-overlay {
+    display: none; position: absolute; inset: 0;
+    background: rgba(10,11,15,0.75); border-radius: 16px;
+    align-items: center; justify-content: center;
+    z-index: 10; backdrop-filter: blur(4px);
+    flex-direction: column; gap: 1rem;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 44px; height: 44px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'DM Mono', monospace; font-size: 0.8rem;
+    color: var(--accent); letter-spacing: 0.05em;
+  }
+
+  /* RESULT PANEL */
+  .result-panel {
+    position: sticky; top: 100px;
+    display: flex; flex-direction: column; gap: 1.25rem;
+  }
+
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 2rem;
+    transition: border-color 0.3s;
+  }
+  .result-card.active { border-color: rgba(232,255,71,0.3); }
+
+  .result-label {
+    font-size: 0.75rem; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 1rem;
+  }
+
+  .price-display {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.8rem; font-weight: 800;
+    color: var(--accent); letter-spacing: -0.02em;
+    line-height: 1; margin-bottom: 0.4rem;
+  }
+  .price-range { font-size: 0.85rem; color: var(--muted); }
+
+  .confidence-bar {
+    background: var(--surface2); border-radius: 100px;
+    height: 6px; margin-top: 1.25rem; overflow: hidden;
+  }
+  .confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 100px;
+    transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+  .confidence-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem;
+  }
+
+  /* FACTORS */
+  .factors-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.75rem;
+  }
+
+  .factor-row {
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .factor-row:last-child { border-bottom: none; }
+  .factor-name { font-weight: 500; margin-bottom: 0.2rem; }
+  .factor-detail { font-size: 0.78rem; color: var(--muted); }
+
+  .factor-impact {
+    display: inline-block;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem;
+    font-weight: 500; padding: 0.15rem 0.45rem;
+    border-radius: 4px; margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+  .pos { background: rgba(74,222,128,0.1); color: var(--success); }
+  .neg { background: rgba(255,107,53,0.1); color: var(--accent3); }
+  .neu { background: rgba(71,200,255,0.1); color: var(--accent2); }
+
+  /* ERROR BANNER */
+  .error-banner {
+    background: rgba(255,107,53,0.1);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 10px; padding: 1rem 1.25rem;
+    font-size: 0.875rem; color: var(--accent3);
+    display: none; margin-top: 1rem;
+    line-height: 1.55;
+  }
+  .error-banner.show { display: block; }
+
+  /* OFFLINE WARNING */
+  .offline-notice {
+    background: rgba(255,107,53,0.08);
+    border: 1px solid rgba(255,107,53,0.2);
+    border-radius: 10px; padding: 0.85rem 1.25rem;
+    font-size: 0.82rem; color: var(--accent3);
+    margin-bottom: 1.5rem; display: none;
+    line-height: 1.55;
+  }
+  .offline-notice.show { display: block; }
+
+  /* HOW IT WORKS */
+  .info-section {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 4rem 3rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace; font-size: 0.75rem;
+    color: var(--accent); letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif; font-size: 2rem;
+    font-weight: 800; letter-spacing: -0.02em; margin-bottom: 3rem;
+  }
+
+  .steps-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+  .step-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.75rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .step-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .step-num { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--accent); margin-bottom: 1rem; letter-spacing: 0.08em; }
+  .step-icon { font-size: 2rem; margin-bottom: 1rem; display: block; }
+  .step-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .step-desc { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+  /* TEAM */
+  .team-section {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 4rem 3rem; border-top: 1px solid var(--border);
+  }
+  .team-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1.25rem; margin-top: 2rem; }
+  .team-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .team-card:hover { border-color: rgba(232,255,71,0.3); }
+  .avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    margin: 0 auto 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800;
+  }
+  .av1 { background: linear-gradient(135deg, #e8ff47, #47c8ff); color: #0a0b0f; }
+  .av2 { background: linear-gradient(135deg, #ff6b35, #e8ff47); color: #0a0b0f; }
+  .av3 { background: linear-gradient(135deg, #47c8ff, #a855f7); color: #0a0b0f; }
+  .av4 { background: linear-gradient(135deg, #4ade80, #47c8ff); color: #0a0b0f; }
+  .member-name { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem; }
+  .member-id   { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); margin-bottom: 0.5rem; }
+  .member-role {
+    font-size: 0.75rem; color: var(--accent);
+    background: rgba(232,255,71,0.08); border: 1px solid rgba(232,255,71,0.15);
+    padding: 0.2rem 0.6rem; border-radius: 100px; display: inline-block;
+  }
+
+  /* PLACEHOLDER */
+  .placeholder-state { text-align: center; padding: 2rem 1rem; }
+  .placeholder-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+  .placeholder-text { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem; max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+    color: var(--muted); font-size: 0.8rem;
+  }
+
+  /* FADE IN */
+  .fade-in { opacity: 0; transform: translateY(20px); animation: fadeIn 0.6s forwards; }
+  @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+  .fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .fade-in:nth-child(3) { animation-delay: 0.3s; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--surface); border: 1px solid var(--accent);
+    color: var(--text); padding: 1rem 1.5rem;
+    border-radius: 10px; font-size: 0.875rem; z-index: 100;
+    transform: translateY(100px); transition: transform 0.3s;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateY(0); }
+
+  @media (max-width: 900px) {
+    header { padding: 1rem 1.5rem; }
+    nav { display: none; }
+    .hero { padding: 3rem 1.5rem 2rem; }
+    .main-section { padding: 0 1.5rem 4rem; }
+    .predictor-grid { grid-template-columns: 1fr; }
+    .result-panel { position: static; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .team-grid { grid-template-columns: 1fr 1fr; }
+    .info-section, .team-section { padding: 3rem 1.5rem; }
+    footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+    .hero-stats { gap: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    AutoVal<span style="color:var(--accent)">AI</span>
+    <span class="logo-badge">BETA</span>
+  </div>
+  <div class="api-status">
+    <div class="status-dot checking" id="statusDot"></div>
+    <span id="statusLabel">Connecting to API...</span>
+  </div>
+  <nav>
+    <a onclick="scroll2('predictor')">Predict</a>
+    <a onclick="scroll2('how-it-works')">How It Works</a>
+    <a onclick="scroll2('team')">Team</a>
+    <a class="nav-cta" onclick="scroll2('predictor')">Try It →</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">🤖 ML-Powered · University of Essex · BSc AI Year 1</div>
+  <h1>Know Your Car's<br><span class="highlight">True Market Value</span></h1>
+  <p class="hero-sub">
+    An AI-powered used car price prediction system built for Pakistan's automotive market.
+    Enter your car details and get an instant, data-driven price estimate from a real ML model.
+  </p>
+  <div class="hero-stats">
+    <div class="stat fade-in"><div class="stat-num">3</div><div class="stat-label">ML Algorithms</div></div>
+    <div class="stat fade-in"><div class="stat-num">8+</div><div class="stat-label">Feature Inputs</div></div>
+    <div class="stat fade-in"><div class="stat-num">PKR</div><div class="stat-label">Market Pricing</div></div>
+  </div>
+</section>
+
+<!-- PREDICTOR -->
+<section class="main-section" id="predictor">
+  <div class="predictor-grid">
+
+    <!-- FORM -->
+    <div class="form-card">
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingMsg">// Calling ML model...</div>
+      </div>
+
+      <div class="form-card-title">Car Details</div>
+      <div class="form-card-sub">Fill in the information below to get a real ML-powered price prediction.</div>
+
+      <!-- Offline warning -->
+      <div class="offline-notice" id="offlineNotice">
+        ⚠️ <strong>Backend offline.</strong> Make sure Flask is running:<br>
+        <code style="font-family:'DM Mono',monospace;font-size:0.8rem;">python app.py</code>
+        — then refresh this page.
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Brand / Make</label>
+          <select id="brand" onchange="updateModels()">
+            <option value="">Select Brand</option>
+            <option>Toyota</option><option>Honda</option><option>Suzuki</option>
+            <option>Hyundai</option><option>KIA</option><option>Daihatsu</option>
+            <option>Nissan</option><option>Mitsubishi</option>
+            <option>BMW</option><option>Mercedes</option><option>Audi</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Model</label>
+          <select id="model"><option value="">Select Brand First</option></select>
+        </div>
+
+        <div class="form-group">
+          <label>Year of Manufacture</label>
+          <select id="year">
+            <option value="">Select Year</option>
+            <script>for(let y=2024;y>=1990;y--) document.write(`<option value="${y}">${y}</option>`);</script>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Fuel Type</label>
+          <select id="fuel">
+            <option value="">Select Fuel</option>
+            <option>Petrol</option><option>Diesel</option>
+            <option>Hybrid</option><option>CNG</option><option>Electric</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Transmission</label>
+          <select id="transmission">
+            <option value="">Select Type</option>
+            <option>Manual</option><option>Automatic</option>
+            <option>CVT</option><option>Semi-Auto</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Engine Capacity (cc)</label>
+          <select id="engine">
+            <option value="">Select Engine</option>
+            <option value="660">660 cc</option><option value="800">800 cc</option>
+            <option value="1000">1000 cc</option><option value="1200">1200 cc</option>
+            <option value="1300">1300 cc</option><option value="1500">1500 cc</option>
+            <option value="1600">1600 cc</option><option value="1800">1800 cc</option>
+            <option value="2000">2000 cc</option><option value="2500">2500 cc</option>
+            <option value="3000">3000 cc+</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Condition</label>
+          <select id="condition">
+            <option value="">Select Condition</option>
+            <option>Excellent</option><option>Good</option>
+            <option>Fair</option><option>Poor</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>City / Region</label>
+          <select id="city">
+            <option value="">Select City</option>
+            <option>Karachi</option><option>Lahore</option>
+            <option>Islamabad</option><option>Rawalpindi</option>
+            <option>Peshawar</option><option>Faisalabad</option><option>Multan</option>
+          </select>
+        </div>
+
+        <div class="form-group full">
+          <label>Mileage (km)</label>
+          <div class="range-wrap">
+            <input type="range" id="mileage" min="0" max="300000" value="50000" step="5000"
+              oninput="document.getElementById('mileageVal').textContent = Number(this.value).toLocaleString() + ' km'">
+            <span class="range-val" id="mileageVal">50,000 km</span>
+          </div>
+        </div>
+
+        <div class="form-group full">
+          <label>Previous Owners</label>
+          <div class="range-wrap">
+            <input type="range" id="owners" min="1" max="5" value="1" step="1"
+              oninput="document.getElementById('ownersVal').textContent = this.value + (this.value==1?' owner':' owners')">
+            <span class="range-val" id="ownersVal">1 owner</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error display -->
+      <div class="error-banner" id="errorBanner"></div>
+
+      <button class="predict-btn" id="predictBtn" onclick="predictPrice()">
+        <span class="shimmer"></span>
+        ⚡ Predict Price Now
+      </button>
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="result-panel" id="resultPanel">
+
+      <div class="result-card" id="priceCard">
+        <div class="result-label">📊 Estimated Market Price</div>
+        <div id="priceResult">
+          <div class="placeholder-state">
+            <div class="placeholder-icon">🚗</div>
+            <div class="placeholder-text">Fill in car details and click<br><strong>Predict Price</strong> to get a real ML result</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="factors-card" id="factorsCard">
+        <div class="result-label" style="margin-bottom:1rem;">🔍 Key Price Factors</div>
+        <div id="factorsList">
+          <div style="font-size:0.85rem;color:var(--muted);text-align:center;padding:1rem 0;">Factors appear after prediction</div>
+        </div>
+      </div>
+
+      <div class="result-card" style="background:rgba(71,200,255,0.05);border-color:rgba(71,200,255,0.2);">
+        <div class="result-label" style="color:var(--accent2);">🤖 ML Model Info</div>
+        <div id="modelInfo" style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;margin-bottom:0.5rem;">—</div>
+        <div id="modelScore" style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);"></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="info-section" id="how-it-works">
+  <div class="section-label">// METHODOLOGY</div>
+  <div class="section-title">How AutoVal AI Works</div>
+  <div class="steps-grid">
+    <div class="step-card"><div class="step-num">01</div><span class="step-icon">📥</span><div class="step-title">Data Collection</div><div class="step-desc">Pakistan car data from Kaggle (PakWheels/OLX listings) with features: brand, model, year, mileage, fuel, transmission, condition, city.</div></div>
+    <div class="step-card"><div class="step-num">02</div><span class="step-icon">⚙️</span><div class="step-title">Preprocessing</div><div class="step-desc">Raw data is cleaned, missing values handled, categories label-encoded, and features scaled for ML compatibility.</div></div>
+    <div class="step-card"><div class="step-num">03</div><span class="step-icon">🧠</span><div class="step-title">Model Training</div><div class="step-desc">Three algorithms trained: Linear Regression (baseline), Random Forest, and Gradient Boosting. Best R² model selected.</div></div>
+    <div class="step-card"><div class="step-num">04</div><span class="step-icon">💾</span><div class="step-title">Model Saved</div><div class="step-desc">Best model saved as .pkl using joblib. Encoders and scaler also saved so predictions are consistent at inference time.</div></div>
+    <div class="step-card"><div class="step-num">05</div><span class="step-icon">🔌</span><div class="step-title">Flask API</div><div class="step-desc">A Python Flask backend loads the model and exposes a /predict endpoint. The frontend sends car data as JSON and receives a price.</div></div>
+    <div class="step-card"><div class="step-num">06</div><span class="step-icon">🎯</span><div class="step-title">Live Prediction</div><div class="step-desc">Your inputs are encoded, scaled, and passed through the model. The result includes price, confidence range, and factor analysis.</div></div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-section" id="team">
+  <div class="section-label">// THE TEAM</div>
+  <div class="section-title">Meet the Developers</div>
+  <p style="color:var(--muted);font-size:0.9rem;margin-top:-1.5rem;margin-bottom:0;">University of Essex · BSc AI Year 1 · Supervised by Sir Sajid Ali</p>
+  <div class="team-grid">
+    <div class="team-card"><div class="avatar av1">HK</div><div class="member-name">Hasan Ali Khan</div><div class="member-id">ID: 353803</div><div class="member-role">ML Engineer</div></div>
+    <div class="team-card"><div class="avatar av2">AS</div><div class="member-name">Arham Salman</div><div class="member-id">ID: 353538</div><div class="member-role">Data Engineer</div></div>
+    <div class="team-card"><div class="avatar av3">JK</div><div class="member-name">Jabber Arif Khan</div><div class="member-id">ID: 364883</div><div class="member-role">Frontend Dev</div></div>
+    <div class="team-card"><div class="avatar av4">AA</div><div class="member-name">Areesha Aqeel</div><div class="member-id">ID: —</div><div class="member-role">Project Lead</div></div>
+  </div>
+</section>
+
+<footer>
+  <div>© 2025 AutoVal AI · University of Essex BSc AI Team Project</div>
+  <div style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--accent);">TEAM-PROJECT-CHALLENGE</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+const API_BASE = 'http://localhost:5000';  // Change this if deployed
+
+// ── CAR MODELS ───────────────────────────────────────────
+const carModels = {
+  Toyota:['Corolla','Yaris','Camry','Prius','Fortuner','Hilux','Land Cruiser','Vitz','Premio','Aqua'],
+  Honda:['Civic','City','HR-V','BRV','Accord','Freed','CR-V','Jazz'],
+  Suzuki:['Alto','Mehran','Cultus','Swift','Wagon R','Jimny','Vitara','Bolan','Ravi'],
+  Hyundai:['Tucson','Elantra','Sonata','Santa Fe','i10','Ioniq 5'],
+  KIA:['Sportage','Picanto','Sorento','Stonic','Carnival'],
+  Daihatsu:['Cuore','Mira','Move','Boon','Terios'],
+  Nissan:['Dayz','Note','Juke','X-Trail','Sunny','Patrol'],
+  Mitsubishi:['Lancer','Colt','Eclipse','Pajero','Outlander'],
+  BMW:['3 Series','5 Series','7 Series','X3','X5','M3'],
+  Mercedes:['C-Class','E-Class','S-Class','GLC','GLE'],
+  Audi:['A3','A4','A6','Q5','Q7'],
+};
+
+function updateModels() {
+  const brand = document.getElementById('brand').value;
+  const sel = document.getElementById('model');
+  sel.innerHTML = '<option value="">Select Model</option>';
+  (carModels[brand] || []).forEach(m => sel.innerHTML += `<option value="${m}">${m}</option>`);
+}
+
+function scroll2(id) { document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
+
+// ── API HEALTH CHECK ──────────────────────────────────────
+async function checkAPIStatus() {
+  const dot   = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  dot.className = 'status-dot checking';
+  label.textContent = 'Connecting to API...';
+
+  try {
+    const res = await fetch(`${API_BASE}/`, { signal: AbortSignal.timeout(4000) });
+    const data = await res.json();
+    dot.className = 'status-dot online';
+    label.textContent = `API Online · ${data.model || 'ML Model Ready'}`;
+    document.getElementById('offlineNotice').classList.remove('show');
+  } catch {
+    dot.className = 'status-dot offline';
+    label.textContent = 'API Offline — run: python app.py';
+    document.getElementById('offlineNotice').classList.add('show');
+  }
+}
+
+checkAPIStatus();
+setInterval(checkAPIStatus, 15000);  // Re-check every 15s
+
+// ── PREDICT ───────────────────────────────────────────────
+async function predictPrice() {
+  // Hide previous errors
+  document.getElementById('errorBanner').classList.remove('show');
+
+  // Validate
+  const fields = {
+    brand: document.getElementById('brand').value,
+    model: document.getElementById('model').value,
+    year:  document.getElementById('year').value,
+    fuel:  document.getElementById('fuel').value,
+    transmission: document.getElementById('transmission').value,
+    engine: document.getElementById('engine').value,
+    condition: document.getElementById('condition').value,
+    city:  document.getElementById('city').value,
+  };
+
+  const empty = Object.entries(fields).find(([k,v]) => !v);
+  if (empty) {
+    showToast(`⚠️ Please select: ${empty[0]}`);
+    return;
+  }
+
+  const payload = {
+    brand:        fields.brand,
+    model:        fields.model,
+    year:         parseInt(fields.year),
+    fuel:         fields.fuel,
+    transmission: fields.transmission,
+    engine:       parseInt(fields.engine),
+    condition:    fields.condition,
+    city:         fields.city,
+    mileage:      parseInt(document.getElementById('mileage').value),
+    owners:       parseInt(document.getElementById('owners').value),
+  };
+
+  // Show loading
+  const overlay = document.getElementById('loadingOverlay');
+  const btn     = document.getElementById('predictBtn');
+  const msgs    = ['// Encoding features...','// Running ML model...','// Computing price...','// Generating factors...'];
+  let msgIdx = 0;
+  const msgInterval = setInterval(() => {
+    document.getElementById('loadingMsg').textContent = msgs[msgIdx++ % msgs.length];
+  }, 500);
+  overlay.classList.add('show');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/predict`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000)
+    });
+
+    const data = await res.json();
+
+    clearInterval(msgInterval);
+    overlay.classList.remove('show');
+    btn.disabled = false;
+
+    if (!data.success) {
+      showError(data.error || 'Prediction failed. Please try again.');
+      return;
+    }
+
+    renderResult(data);
+
+  } catch (err) {
+    clearInterval(msgInterval);
+    overlay.classList.remove('show');
+    btn.disabled = false;
+
+    if (err.name === 'TimeoutError' || err.name === 'TypeError') {
+      showError('Could not reach the backend API. Make sure Flask is running on port 5000:\n  python app.py');
+      document.getElementById('offlineNotice').classList.add('show');
+      document.getElementById('statusDot').className = 'status-dot offline';
+      document.getElementById('statusLabel').textContent = 'API Offline';
+    } else {
+      showError(`Network error: ${err.message}`);
+    }
+  }
+}
+
+// ── RENDER RESULT ─────────────────────────────────────────
+function renderResult(data) {
+  // Price card
+  document.getElementById('priceCard').classList.add('active');
+  document.getElementById('priceResult').innerHTML = `
+    <div class="price-display">PKR ${Number(data.price_lakhs).toFixed(2)}L</div>
+    <div class="price-range">Range: PKR ${data.price_range.low}L – ${data.price_range.high}L</div>
+    <div class="confidence-bar">
+      <div class="confidence-fill" id="confFill"></div>
+    </div>
+    <div class="confidence-label">
+      <span>Model Confidence</span>
+      <span style="color:var(--accent)">${data.confidence_pct}%</span>
+    </div>
+  `;
+  setTimeout(() => {
+    document.getElementById('confFill').style.width = data.confidence_pct + '%';
+  }, 100);
+
+  // Factors
+  document.getElementById('factorsList').innerHTML = data.factors.map(f => {
+    const cls = f.impact === 'POSITIVE' ? 'pos' : f.impact === 'NEGATIVE' ? 'neg' : 'neu';
+    return `
+      <div class="factor-row">
+        <div class="factor-name">
+          ${f.name}
+          <span class="factor-impact ${cls}">${f.impact}</span>
+        </div>
+        <div class="factor-detail">${f.detail}</div>
+      </div>`;
+  }).join('');
+
+  // Model info
+  document.getElementById('modelInfo').textContent = data.model_used;
+  document.getElementById('modelScore').textContent = `R² = ${data.model_r2} · Training accuracy metric`;
+
+  // Mobile scroll
+  if (window.innerWidth < 900) {
+    setTimeout(() => document.getElementById('priceCard').scrollIntoView({behavior:'smooth'}), 200);
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function showError(msg) {
+  const b = document.getElementById('errorBanner');
+  b.textContent = '❌ ' + msg;
+  b.classList.add('show');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
