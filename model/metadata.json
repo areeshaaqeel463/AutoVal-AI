@@ -1,0 +1,28 @@
+{
+  "model_name": "3\ufe0f\u20e3  Gradient Boosting Regressor",
+  "r2_score": 0.9504,
+  "mae_pkr": 171446.0,
+  "rmse_pkr": 253178.0,
+  "feature_cols": [
+    "Brand_enc",
+    "Model_enc",
+    "Year",
+    "Fuel_Type_enc",
+    "Transmission_enc",
+    "Engine_CC",
+    "Condition_enc",
+    "City_enc",
+    "Mileage_KM",
+    "Previous_Owners"
+  ],
+  "categorical_cols": [
+    "Brand",
+    "Model",
+    "Fuel_Type",
+    "Transmission",
+    "Condition",
+    "City"
+  ],
+  "trained_on": "2025",
+  "dataset_size": 8833
+}
