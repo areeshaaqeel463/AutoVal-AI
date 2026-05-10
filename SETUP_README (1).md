@@ -179,7 +179,7 @@ city / location      →  City
 price / Price_PKR    →  Price_PKR
 
 ##  Project Management
-- **Jira Board:** https://bic-team-t6b2f6in.atlassian.net/jira/software/projects/AVA
+- **Jira Board:** https://bic-team-t6b2f6in.atlassian.net/jira/software/projects/AVA/boards
 - **Total Tasks:** 54 tasks completed
 - **Sprints:** 8 sprints
 - **Story Points:** 173 pts delivered
